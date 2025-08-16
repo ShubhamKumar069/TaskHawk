@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TaskHawk</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap');
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Montserrat', sans-serif;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 50px;
+  color: #333;
+}
+
+.container {
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+  width: 450px;
+  max-width: 90%;
+  padding: 40px 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+h1 {
+  font-size: 2rem;
+  color: #4b3bff;
+  margin-bottom: 25px;
+  text-align: center;
+  letter-spacing: 1px;
+}
+
+input {
+  width: 100%;
+  padding: 14px 18px;
+  margin: 10px 0;
+  border-radius: 10px;
+  border: 1px solid #ddd;
+  font-size: 16px;
+  transition: 0.3s;
+}
+
+input:focus {
+  outline: none;
+  border-color: #4b3bff;
+  box-shadow: 0 0 10px rgba(75,59,255,0.3);
+}
+
+button {
+  width: 100%;
+  padding: 14px 0;
+  margin: 10px 0;
+  border-radius: 12px;
+  border: none;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+button#registerBtn {
+  background: #6c63ff;
+  color: #fff;
+}
+
+button#registerBtn:hover {
+  background: #574ddb;
+}
+
+button#loginBtn {
+  background: #ff6584;
+  color: #fff;
+}
+
+button#loginBtn:hover {
+  background: #e84c6b;
+}
+
+button#logoutBtn {
+  background: #f76c6c;
+  margin-top: 15px;
+}
+
+button#logoutBtn:hover {
+  background: #e03e3e;
+}
+
+#todoSection {
+  width: 100%;
+}
+
+.todo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f3f3f3;
+  border-radius: 12px;
+  padding: 12px 15px;
+  margin: 10px 0;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+  transition: 0.3s;
+}
+
+.todo:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 25px rgba(0,0,0,0.15);
+}
+
+.todo button {
+  width: auto;
+  padding: 6px 12px;
+  font-size: 14px;
+  background: #ff6b6b;
+  color: #fff;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.todo button:hover {
+  background: #e03e3e;
+}
+
+.hidden {
+  display: none;
+}
+
+.message {
+  text-align: center;
+  margin-top: 5px;
+  color: #ff4b4b;
+  font-weight: 500;
+}
+</style>
+<link rel="icon" href="https://cdn-icons-png.flaticon.com/512/3293/3293897.png" type="image/png">
+
+</head>
+<body>
+<div class="container">
+  <h1>TaskHawk</h1>
+
+  <div id="authSection">
+    <input type="text" id="name" placeholder="Name (Register)">
+    <input type="email" id="email" placeholder="Email">
+    <input type="password" id="password" placeholder="Password">
+    <button id="registerBtn">Register</button>
+    <button id="loginBtn">Login</button>
+    <div class="message" id="authMessage"></div>
+  </div>
+
+  <div id="todoSection" class="hidden">
+    <input type="text" id="todoTitle" placeholder="Todo Title">
+    <input type="text" id="todoDesc" placeholder="Todo Description">
+    <button id="addTodoBtn">Add Todo</button>
+    <h3 style="margin-top:20px; color:#4b3bff;">Your Todos</h3>
+    <div id="todosList"></div>
+    <button id="logoutBtn">Logout</button>
+  </div>
+</div>
+
+<script>
+const apiUrl = "";
+let token = null;
+const authSection = document.getElementById("authSection");
+const todoSection = document.getElementById("todoSection");
+const authMessage = document.getElementById("authMessage");
+const todosList = document.getElementById("todosList");
+
+// Check if token exists in localStorage on page load
+window.onload = () => {
+  const savedToken = localStorage.getItem("jwtToken");
+  if (savedToken) {
+    token = savedToken;
+    authSection.classList.add("hidden");
+    todoSection.classList.remove("hidden");
+    loadTodos();
+  }
+};
+
+document.getElementById("registerBtn").onclick = async () => {
+  const name = document.getElementById("name").value;
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+  try {
+    const res = await fetch(apiUrl + "/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, email, password })
+    });
+    const data = await res.json();
+    authMessage.textContent = data.message || JSON.stringify(data);
+  } catch { authMessage.textContent = "Error registering user"; }
+};
+
+document.getElementById("loginBtn").onclick = async () => {
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+  try {
+    const res = await fetch(apiUrl + "/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password })
+    });
+    const data = await res.json();
+    if (res.status === 200) {
+      token = data.token;
+      localStorage.setItem("jwtToken", token); // Save token for persistent login
+      authSection.classList.add("hidden");
+      todoSection.classList.remove("hidden");
+      loadTodos();
+    } else authMessage.textContent = data.message || "Login failed";
+  } catch { authMessage.textContent = "Error logging in"; }
+};
+
+document.getElementById("addTodoBtn").onclick = async () => {
+  const title = document.getElementById("todoTitle").value;
+  const desc = document.getElementById("todoDesc").value;
+  try {
+    await fetch(apiUrl + "/createTodo", {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + token
+      },
+      body: JSON.stringify({ title, desc })
+    });
+    loadTodos();
+  } catch (err) { console.error(err); }
+};
+
+async function loadTodos() {
+  try {
+    const res = await fetch(apiUrl + "/myTodos", { headers: { "Authorization": "Bearer " + token }});
+    const todos = await res.json();
+    todosList.innerHTML = "";
+    todos.forEach(todo => {
+      const div = document.createElement("div");
+      div.className = "todo";
+      div.innerHTML = `<span>${todo.title}: ${todo.desc || ''}</span>
+                       <button onclick="deleteTodo('${todo._id}')">Delete</button>`;
+      todosList.appendChild(div);
+    });
+  } catch (err) { console.error(err); }
+}
+
+window.deleteTodo = async (id) => {
+  try {
+    await fetch(apiUrl + "/delete/" + id, { method: "DELETE", headers: { "Authorization": "Bearer " + token } });
+    loadTodos();
+  } catch (err) { console.error(err); }
+};
+
+document.getElementById("logoutBtn").onclick = () => {
+  token = null;
+  localStorage.removeItem("jwtToken"); // Remove token on logout
+  authSection.classList.remove("hidden");
+  todoSection.classList.add("hidden");
+};
+</script>
+</body>
+</html>
